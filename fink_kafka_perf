@@ -126,7 +126,7 @@ echo "Running performance test..."
 # Redirect output to the log file
 {
     echo "# date=`date`"
-    echo "# ip=`curl -s ifconfig.me`"
+    echo "# public_ip=`curl -s ifconfig.me`"
     echo "# kVersion=${KAFKA_VERSION}"
     echo "# server=${SERVER}"
     echo "# timeout=${TIME_OUT}"
