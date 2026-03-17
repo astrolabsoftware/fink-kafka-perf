@@ -115,7 +115,7 @@ else
 fi
 
 # Get servers from credentials
-SERVER=`python -c 'import yaml,sys;print(yaml.safe_load(sys.stdin)["servers"])' < ${HOME}/.finkclient/${SURVEY}_credentials.yml`
+SERVER=`python3 -c 'import yaml,sys;print(yaml.safe_load(sys.stdin)["servers"])' < ${HOME}/.finkclient/${SURVEY}_credentials.yml`
 
 # Download Kafka if need be
 if [ ! -d "${KAFKA_FOLDER}" ]; then
