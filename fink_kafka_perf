@@ -1,0 +1,148 @@
+#!/bin/bash
+# Copyright 2026 AstroLab Software
+# Author: Julien Peloton
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+set -e
+SERROR="\xE2\x9D\x8C"
+
+KAFKA_VERSION=2.8.1
+KAFKA_FOLDER=kafka_2.12-${KAFKA_VERSION}
+NMESSAGES_DEFAULT=5000
+TIME_OUT_DEFAULT=20000
+TOPIC_LSST=fink_sn_near_galaxy_candidate_lsst
+TOPIC_ZTF=fink_sso_ztf_candidates_ztf
+
+# Show help if no arguments is given
+if [[ $1 == "" ]]; then
+  HELP_ON_SERVICE="-h"
+fi
+
+# Grab the command line arguments
+while [ "$#" -gt 0 ]; do
+  case "$1" in
+    -h)
+      HELP_ON_SERVICE="-h"
+      shift 1
+      ;;
+    -survey)
+      SURVEY="$2"
+      shift 2
+      ;;
+    -topic)
+      TOPIC="$2"
+      shift 2
+      ;;
+    -server)
+      SERVER="$2"
+      shift 2
+      ;;
+    -kVersion)
+      KAFKA_VERSION="$2"
+      shift 2
+      ;;
+    -nmessages)
+      NMESSAGES="$2"
+      shift 2
+      ;;
+    -timeout)
+      TIME_OUT="$2"
+      shift 2
+      ;;
+    -*)
+      echo "unknown option: $1" >&2
+      exit 1
+      ;;
+    *)
+      echo "unknown argument: $1" >&2
+      exit 1
+      ;;
+  esac
+done
+
+__usage="
+fink_kafka_perf is a wrapper around Kafka performance measurement tools specialised for Fink. It is meant to inspect slow connections to the Fink Kafka servers.
+
+  Find more information on Fink at https://fink-broker.org
+
+Usage: $(basename $0) [OPTIONS]
+
+Options:
+  -h          Show this help
+  -survey     Survey name (ztf, lsst)
+  -topic      Kafka topic name. Optional. Default topics for performance are:
+                - ZTF:  ${TOPIC_ZTF}
+	        - LSST: ${TOPIC_LSST}
+              Note that any Livestream topics or Data Transfer topic works.
+  -nmessages  Number of messages to poll. Optional. Default is ${NMESSAGES_DEFAULT}.
+  -timeout    Timeout in milliseconds. Optional. Default is ${TIME_OUT_DEFAULT}.
+  -kVersion   Kafka version to use. Optional. Default is ${KAFKA_VERSION}.
+
+Examples:
+  ./$(basename $0) -survey lsst   # using default topic
+  ./$(basename $0) -survey ztf    # using default topic
+
+  # Using Data Transfer topic
+  ./fink_kafka_perf -survey lsst -topic ftransfer_lsst_2026-03-17_244593
+"
+
+if [[ $service == "" ]] && [[ ${HELP_ON_SERVICE} == "-h" ]]; then
+  echo -e "$__usage"
+  exit 1
+fi
+
+# Check survey and set topic
+if [[ $SURVEY == "" ]]; then
+  echo -e "${SERROR} You need to specify a survey, e.g. ./fink_kafka_perf -survey lsst [options]"
+  exit 1
+elif [[ $SURVEY == "ztf" ]]; then
+  TOPIC="${TOPIC:-${TOPIC_ZTF}}"
+elif [[ $SURVEY == "lsst" ]]; then
+  TOPIC="${TOPIC:-${TOPIC_LSST}}"
+else
+  echo -e "${SERROR} ${SURVEY} is not a valid survey name. Choose among: ztf, lsst."
+  exit 1
+fi
+
+# Get servers from credentials
+SERVER=`python -c 'import yaml,sys;print(yaml.safe_load(sys.stdin)["servers"])' < ${HOME}/.finkclient/${SURVEY}_credentials.yml`
+
+# Download Kafka if need be
+if [ ! -d "${KAFKA_FOLDER}" ]; then
+	echo "kafka folder not detected. Downloading (this may takes several minutes)..."
+  ./install_kafka.sh --version ${KAFKA_VERSION}
+fi
+
+LOG_FILE="fink_kafka_output_${SURVEY}.log"
+
+echo "Running performance test..."
+# Redirect output to the log file
+{
+    echo "# date=`date`"
+    echo "# public_ip=`curl -s ifconfig.me`"
+    echo "# kVersion=${KAFKA_VERSION}"
+    echo "# server=${SERVER}"
+    echo "# timeout=${TIME_OUT:-${TIME_OUT_DEFAULT}}"
+    echo "# topic=${TOPIC}"
+    echo "# nmessages=${NMESSAGES:-${NMESSAGES_DEFAULT}}"
+    ${KAFKA_FOLDER}/bin/kafka-consumer-perf-test.sh --topic "${TOPIC}" --bootstrap-server "${SERVER}" --messages ${NMESSAGES:-${NMESSAGES_DEFAULT}} --timeout ${TIME_OUT:-${TIME_OUT_DEFAULT}}
+} >> "$LOG_FILE" 2>&1
+
+if grep -q "WARNING" ${LOG_FILE}; then
+  echo -e "${SERROR} We detected a WARNING while performing the test."
+  echo "   Check carefully the log file ${LOG_FILE}."
+  echo "   One common warning is the topic being empty:"
+  echo "   check if data.consumed.in.MB is 0.0000, and"
+  echo "   if this is the case, use another Livestream topic, or create a"
+  echo "   job on the Data Transfer page, and use this topic."
+fi
