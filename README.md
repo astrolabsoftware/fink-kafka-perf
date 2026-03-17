@@ -14,7 +14,7 @@ This repository offers tools to measure and report performances when polling Fin
 ./fink_kafka_perf -survey ztf
 ```
 
-The first time you run it, it will download Kafka. Logs will be appended in a file `fink_kafka_output_<SURVEY>.log`. To check all existing options:
+The first time you run it, it will download Kafka. Performance runs are polling 5,000 messages by default (about 500MB). Logs will be appended in a file `fink_kafka_output_<SURVEY>.log`. To check all existing options:
 
 ```bash
 finkenv ❯ ./fink_kafka_perf -h
@@ -30,7 +30,7 @@ Options:
   -survey     Survey name (ztf, lsst)
   -topic      Kafka topic name. Optional. Default topics for performance are:
                 - ZTF:  fink_sso_ztf_candidates_ztf
-	        - LSST: fink_sn_near_galaxy_candidate_lsst
+                - LSST: fink_sn_near_galaxy_candidate_lsst
               Note that any Livestream topics or Data Transfer topic works.
   -nmessages  Number of messages to poll. Optional. Default is 5000.
   -timeout    Timeout in milliseconds. Optional. Default is 20000.
@@ -44,4 +44,3 @@ Examples:
   ./fink_kafka_perf -survey lsst -topic ftransfer_lsst_2026-03-17_244593
 ```
 
-## Fink  
