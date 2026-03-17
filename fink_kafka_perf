@@ -18,7 +18,7 @@ SERROR="\xE2\x9D\x8C"
 
 KAFKA_VERSION=2.8.1
 KAFKA_FOLDER=kafka_2.12-${KAFKA_VERSION}
-NMESSAGES_DEFAULT=1500
+NMESSAGES_DEFAULT=5000
 TIME_OUT_DEFAULT=20000
 TOPIC_LSST=fink_sn_near_galaxy_candidate_lsst
 TOPIC_ZTF=fink_sso_ztf_candidates_ztf
@@ -40,7 +40,7 @@ while [ "$#" -gt 0 ]; do
       shift 2
       ;;
     -topic)
-      ZTF_KAFKA_TOPIC="$2"
+      TOPIC="$2"
       shift 2
       ;;
     -server)
@@ -89,8 +89,11 @@ Options:
   -kVersion   Kafka version to use. Optional. Default is ${KAFKA_VERSION}.
 
 Examples:
-  ./$(basename $0) -survey lsst
-  ./$(basename $0) -survey ztf
+  ./$(basename $0) -survey lsst   # using default topic
+  ./$(basename $0) -survey ztf    # using default topic
+
+  # Using Data Transfer topic
+  ./fink_kafka_perf -survey lsst -topic ftransfer_lsst_2026-03-17_244593
 "
 
 if [[ $service == "" ]] && [[ ${HELP_ON_SERVICE} == "-h" ]]; then
@@ -129,9 +132,9 @@ echo "Running performance test..."
     echo "# public_ip=`curl -s ifconfig.me`"
     echo "# kVersion=${KAFKA_VERSION}"
     echo "# server=${SERVER}"
-    echo "# timeout=${TIME_OUT}"
+    echo "# timeout=${TIME_OUT:-${TIME_OUT_DEFAULT}}"
     echo "# topic=${TOPIC}"
-    echo "# nmessages=${NMESSAGES}"
+    echo "# nmessages=${NMESSAGES:-${NMESSAGES_DEFAULT}}"
     ${KAFKA_FOLDER}/bin/kafka-consumer-perf-test.sh --topic "${TOPIC}" --bootstrap-server "${SERVER}" --messages ${NMESSAGES:-${NMESSAGES_DEFAULT}} --timeout ${TIME_OUT:-${TIME_OUT_DEFAULT}}
 } >> "$LOG_FILE" 2>&1
 
