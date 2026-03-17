@@ -44,3 +44,16 @@ Examples:
   ./fink_kafka_perf -survey lsst -topic ftransfer_lsst_2026-03-17_244593
 ```
 
+## Fink debugging
+
+Execute:
+
+```bash
+# For LSST with any Data Transfer topic
+./fink_kafka_perf -survey lsst -topic ftransfer_lsst_2026-03-17_244593
+
+# For ZTF with default topic
+./fink_kafka_perf -survey ztf
+```
+
+Do not upload report publicly (they contain public IP). Instead send a private message to me on Slack or email.
