@@ -117,6 +117,11 @@ fi
 # Get servers from credentials
 SERVER=`python3 -c 'import yaml,sys;print(yaml.safe_load(sys.stdin)["servers"])' < ${HOME}/.finkclient/${SURVEY}_credentials.yml`
 
+if [[ $SERVER == "" ]]; then
+  echo -e "${SERROR} Your credentials are not valid. Did you register for the Fink services?"
+  exit 1
+fi
+
 # Download Kafka if need be
 if [ ! -d "${KAFKA_FOLDER}" ]; then
 	echo "kafka folder not detected. Downloading (this may takes several minutes)..."
